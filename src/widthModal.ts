@@ -1,4 +1,4 @@
-import { MarkdownView, Modal, Notice, Setting } from "obsidian";
+import { MarkdownView, Modal, Notice, Setting, TFile } from "obsidian";
 import type NoteWidthPlugin from "./main";
 import {
   applyToLeaf,
@@ -30,7 +30,13 @@ const SOURCE_LABEL: Record<string, (extra?: string) => string> = {
 
 export class NoteWidthModal extends Modal {
   private plugin: NoteWidthPlugin;
-  private view: MarkdownView;
+  /**
+   * Modal 打开时锁定的目标 file，避免 Modal 异步存活期间 leaf 切换 / 关闭后
+   * view.file 变 null 或指向其它笔记导致写错文件。
+   */
+  private file: TFile;
+  /** 同样缓存 containerEl，用于预览 / 取消回滚时直接定位到原 leaf */
+  private leafContainer: HTMLElement;
 
   /** Modal 打开时 leaf 上已生效的 WidthValue，用户取消时回滚到这个值 */
   private originalApplied: WidthValue;
@@ -55,14 +61,16 @@ export class NoteWidthModal extends Modal {
   constructor(plugin: NoteWidthPlugin, view: MarkdownView) {
     super(plugin.app);
     this.plugin = plugin;
-    this.view = view;
+    // 锁定 file 与 containerEl 引用——构造时 view.file 一定存在（调用方已校验）
+    this.file = view.file!;
+    this.leafContainer = view.containerEl;
 
-    const resolved = plugin.resolveForFile(view.file!);
+    const resolved = plugin.resolveForFile(this.file);
     this.originalApplied = resolved.value;
     this.pendingValue = resolved.value;
 
     // UI 初值优先用本笔记 frontmatter 的设置；没有就用解析后的实际生效值
-    const fmRaw = plugin.app.metadataCache.getFileCache(view.file!)
+    const fmRaw = plugin.app.metadataCache.getFileCache(this.file)
       ?.frontmatter?.[FRONTMATTER_KEY];
     const fmParsed = fmRaw !== undefined ? parseWidthValue(fmRaw) : null;
     const seed: WidthValue =
@@ -93,7 +101,7 @@ export class NoteWidthModal extends Modal {
     contentEl.createEl("h3", { text: "笔记宽度" });
 
     // 当前生效来源
-    const resolved = this.plugin.resolveForFile(this.view.file!);
+    const resolved = this.plugin.resolveForFile(this.file);
     contentEl.createDiv({
       cls: "note-width-source",
       text: `当前生效来源：${this.sourceText(resolved)}`,
@@ -214,15 +222,15 @@ export class NoteWidthModal extends Modal {
   async onClose() {
     if (this.committed) {
       try {
-        await this.plugin.writeNoteWidth(this.view.file!, this.pendingValue);
+        await this.plugin.writeNoteWidth(this.file, this.pendingValue);
       } catch (e) {
         console.error("[note-width] 写入 frontmatter 失败", e);
         new Notice("保存笔记宽度失败");
-        applyToLeaf(this.view.containerEl, this.originalApplied);
+        applyToLeaf(this.leafContainer, this.originalApplied);
       }
     } else {
       // 用户取消：把预览改动回滚
-      applyToLeaf(this.view.containerEl, this.originalApplied);
+      applyToLeaf(this.leafContainer, this.originalApplied);
     }
     this.contentEl.empty();
   }
@@ -266,7 +274,7 @@ export class NoteWidthModal extends Modal {
 
   private previewCurrent() {
     const v = this.currentValueFromUi();
-    if (v) applyToLeaf(this.view.containerEl, v);
+    if (v) applyToLeaf(this.leafContainer, v);
   }
 
   private sourceText(resolved: ResolvedWidth): string {

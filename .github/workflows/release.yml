@@ -38,11 +38,13 @@ jobs:
           TAG_VERSION="${GITHUB_REF#refs/tags/}"
           MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          LOCK_VERSION=$(node -p "require('./package-lock.json').version")
           echo "Tag:      $TAG_VERSION"
           echo "Manifest: $MANIFEST_VERSION"
           echo "Package:  $PACKAGE_VERSION"
-          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ] || [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "::error::Tag / manifest.json / package.json 版本号不一致，发版前请同步升号"
+          echo "Lock:     $LOCK_VERSION"
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ] || [ "$TAG_VERSION" != "$PACKAGE_VERSION" ] || [ "$TAG_VERSION" != "$LOCK_VERSION" ]; then
+            echo "::error::Tag / manifest.json / package.json / package-lock.json 版本号不一致，发版前请同步升号（含 npm install --package-lock-only）"
             exit 1
           fi
 
