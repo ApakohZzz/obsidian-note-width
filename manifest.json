@@ -1,0 +1,9 @@
+{
+  "id": "note-width",
+  "name": "笔记宽度",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "为每篇笔记 / 每个文件夹 / 全局分别设置阅读宽度。支持全宽开关，或用滑块和文本框自定义 px / % 宽度，单笔记设置写入 frontmatter。",
+  "author": "ApakohZzz",
+  "isDesktopOnly": false
+}

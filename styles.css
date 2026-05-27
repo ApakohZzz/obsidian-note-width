@@ -1,0 +1,149 @@
+/*
+ * obsidian-note-width
+ * 选择器都用 [data-note-width=...] 属性选择器，并且属性挂在 MarkdownView 的 containerEl
+ * (.workspace-leaf-content) 上。该容器一定是阅读模式 / 源码模式视图的祖先，所以后代选择器
+ * 能稳定命中；没有该属性的视图保持 Obsidian 默认行为。
+ */
+
+/* ---------- 自定义宽度 (px / %) ----------
+ * 关键：阅读模式和编辑模式的 DOM 结构不同，max-width 只能打在「单层」容器上，
+ * 否则百分比会逐层相乘（70% × 70% × 70% ≈ 34%），导致 % 模式下编辑视图明显比阅读窄。
+ *   - 阅读模式：max-width 打在 .markdown-preview-sizer
+ *   - 编辑模式（CM6）：max-width 只打在 .cm-sizer（最外层），里面 .cm-contentContainer
+ *     / .cm-content 不设 max-width，自然撑满父级即可
+ * --file-line-width 是 Obsidian 标准变量，安全地在所有层里都设（它不会嵌套乘）。
+ */
+[data-note-width="custom"] .markdown-preview-sizer,
+[data-note-width="custom"] .markdown-source-view.mod-cm6 .cm-sizer {
+  --file-line-width: var(--note-custom-width);
+  max-width: var(--note-custom-width) !important;
+  width: 100%;
+}
+[data-note-width="custom"] .markdown-source-view.mod-cm6 .cm-contentContainer,
+[data-note-width="custom"] .markdown-source-view.mod-cm6 .cm-content {
+  --file-line-width: var(--note-custom-width);
+}
+
+/* ---------- 全宽 ---------- */
+[data-note-width="full"] .markdown-preview-sizer,
+[data-note-width="full"] .markdown-source-view.mod-cm6 .cm-sizer {
+  --file-line-width: 100%;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+[data-note-width="full"] .markdown-source-view.mod-cm6 .cm-contentContainer,
+[data-note-width="full"] .markdown-source-view.mod-cm6 .cm-content {
+  --file-line-width: 100%;
+}
+
+/* ---------- Modal 容器 ----------
+ * 不强行 min-width；让 Obsidian 自己的 modal-content 决定，自适应窗宽。
+ * contentEl 自身用 flex column 控制纵向间距，不污染 Obsidian 的 .setting-item 内部布局。
+ */
+.note-width-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 2px 0;
+}
+
+.note-width-modal h3 {
+  margin: 0;
+  font-size: 1.4em;
+  line-height: 1.25;
+}
+
+/* 「当前生效来源」卡片 */
+.note-width-modal .note-width-source {
+  margin: -4px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+/* 不要乱改 Obsidian 自己的 .setting-item 内部布局，只给它一点上下呼吸空间 */
+.note-width-modal .setting-item {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 14px;
+  margin-top: 0;
+}
+
+/* 单位 / 宽度 行：用 flex，子元素数量可变也不会塌 */
+.note-width-modal .note-width-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.note-width-modal .note-width-row > label {
+  flex: 0 0 64px;
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.note-width-modal .note-width-row select {
+  flex: 0 0 auto;
+  min-width: 96px;
+}
+
+.note-width-modal .note-width-slider {
+  flex: 1 1 auto;
+  min-width: 0; /* 防止 flex 子元素被内容撑出溢出 */
+}
+
+.note-width-modal .note-width-number {
+  flex: 0 0 96px;
+  text-align: right;
+}
+
+.note-width-modal .note-width-number.is-invalid {
+  border-color: var(--color-red);
+}
+
+/* 操作按钮：和上方内容用一条分隔线区分 */
+.note-width-modal .note-width-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.note-width-modal .note-width-actions button {
+  min-height: 32px;
+  padding: 0 14px;
+}
+
+.note-width-modal input[type="range"][disabled],
+.note-width-modal input[type="text"][disabled],
+.note-width-modal select[disabled] {
+  opacity: 0.55;
+}
+
+/* ---------- 设置面板里的文件夹规则行 ---------- */
+.note-width-folder-rule {
+  display: flex;
+  gap: var(--size-4-2, 8px);
+  align-items: center;
+  margin-bottom: var(--size-4-2, 8px);
+}
+
+.note-width-folder-rule .note-width-path {
+  flex: 2 1 auto;
+}
+
+.note-width-folder-rule .note-width-width {
+  flex: 1 1 auto;
+  min-width: 100px;
+}
+
+.note-width-folder-rule .is-invalid {
+  border-color: var(--color-red);
+}

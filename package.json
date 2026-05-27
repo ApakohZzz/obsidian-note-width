@@ -1,0 +1,23 @@
+{
+  "name": "obsidian-note-width",
+  "version": "0.1.0",
+  "description": "Per-note / per-folder / global reading width control for Obsidian.",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "node scripts/selftest.mjs",
+    "dump": "node scripts/dump-vault.mjs"
+  },
+  "keywords": [],
+  "author": "ApakohZzz",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.20.0",
+    "obsidian": "^1.4.11",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  }
+}
