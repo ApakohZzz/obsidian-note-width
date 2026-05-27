@@ -1,6 +1,6 @@
 {
   "name": "obsidian-note-width",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Per-note / per-folder / global reading width control for Obsidian.",
   "private": true,
   "scripts": {

@@ -127,23 +127,34 @@
   opacity: 0.55;
 }
 
-/* ---------- 设置面板里的文件夹规则行 ---------- */
-.note-width-folder-rule {
+/* ---------- 设置面板 ---------- */
+.note-width-settings .note-width-rules {
   display: flex;
-  gap: var(--size-4-2, 8px);
-  align-items: center;
-  margin-bottom: var(--size-4-2, 8px);
+  flex-direction: column;
+  gap: 0;
 }
 
-.note-width-folder-rule .note-width-path {
-  flex: 2 1 auto;
+.note-width-settings .note-width-empty {
+  padding: 14px 16px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 8px;
+  margin: 8px 0;
 }
 
-.note-width-folder-rule .note-width-width {
-  flex: 1 1 auto;
-  min-width: 100px;
+/* 每条文件夹规则：两个文本框宽度一致，按钮跟在后面 */
+.note-width-settings .note-width-folder-rule .setting-item-control {
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.note-width-folder-rule .is-invalid {
+.note-width-settings .note-width-folder-rule input.note-width-path,
+.note-width-settings .note-width-folder-rule input.note-width-width {
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.note-width-settings input.is-invalid {
   border-color: var(--color-red);
 }

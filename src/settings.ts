@@ -14,13 +14,13 @@ export class NoteWidthSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.addClass("note-width-settings");
 
-    containerEl.createEl("h2", { text: "笔记宽度" });
-
+    // 全局默认宽度
     new Setting(containerEl)
       .setName("全局默认宽度")
       .setDesc(
-        '可填：default（沿用 Obsidian 自身设置）、full（全宽）、像素值（如 900px）、百分比（如 70%）。当笔记本身和文件夹规则都没设置时使用该值。',
+        "可填：default（沿用 Obsidian 自身设置）、full（全宽）、像素值（如 900px）、百分比（如 70%）。当笔记本身和文件夹规则都没设置时使用该值。",
       )
       .addText((t) => {
         const inputEl = (t as unknown as { inputEl: HTMLInputElement }).inputEl;
@@ -40,65 +40,89 @@ export class NoteWidthSettingTab extends PluginSettingTab {
           });
       });
 
-    containerEl.createEl("h3", { text: "文件夹规则" });
-    containerEl.createEl("p", {
-      text: "每条规则作用于指定文件夹（包含子文件夹）下的笔记。匹配前缀最长的规则优先生效。笔记自身的 frontmatter 设置会覆盖文件夹规则。路径留空表示「整个仓库根目录」。",
-      cls: "setting-item-description",
-    });
+    // 文件夹规则：用一个 .setting-item-heading 充当分组标题，对齐 Obsidian 自带样式
+    new Setting(containerEl)
+      .setHeading()
+      .setName("文件夹规则")
+      .setDesc(
+        "每条规则作用于指定文件夹（包含子文件夹）下的笔记。匹配前缀最长的规则优先生效。笔记自身的 frontmatter 设置会覆盖文件夹规则。路径留空表示「整个仓库根目录」。",
+      );
 
-    const list = containerEl.createDiv();
+    const list = containerEl.createDiv({ cls: "note-width-rules" });
     this.renderRules(list);
 
-    new Setting(containerEl).addButton((b) =>
-      b
-        .setButtonText("新增文件夹规则")
-        .setCta()
-        .onClick(async () => {
-          this.plugin.settings.folderRules.push({ path: "", width: "default" });
-          await this.plugin.saveSettings();
-          this.renderRules(list);
-        }),
-    );
+    new Setting(containerEl)
+      .setName("添加一条新的文件夹规则")
+      .setDesc("点击右侧按钮新增一条空规则，再填入路径与宽度。")
+      .addButton((b) =>
+        b
+          .setButtonText("新增")
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.folderRules.push({
+              path: "",
+              width: "default",
+            });
+            await this.plugin.saveSettings();
+            this.renderRules(list);
+          }),
+      );
   }
 
   private renderRules(container: HTMLElement) {
     container.empty();
+    if (this.plugin.settings.folderRules.length === 0) {
+      container.createDiv({
+        cls: "note-width-empty",
+        text: "暂无文件夹规则。",
+      });
+      return;
+    }
     this.plugin.settings.folderRules.forEach((rule, idx) => {
-      const row = container.createDiv({ cls: "note-width-folder-rule" });
+      // 每条规则用 Setting 容器，自带卡片样式；在 control 区放路径 / 宽度 / 删除三个控件
+      const setting = new Setting(container)
+        .setClass("note-width-folder-rule")
+        .setName(`规则 ${idx + 1}`)
+        .setDesc("文件夹路径（留空 = 仓库根） · 宽度值");
 
-      const pathInput = row.createEl("input", {
-        type: "text",
-        cls: "note-width-path",
-      });
-      pathInput.placeholder = "文件夹路径（留空表示仓库根）";
-      pathInput.value = rule.path;
-      pathInput.addEventListener("input", () => {
-        // 即时保存路径（trim 但不强制末尾斜杠，由 widthEngine 统一规整）
-        this.updateRule(idx, { path: pathInput.value.trim() });
-      });
-
-      const widthInput = row.createEl("input", {
-        type: "text",
-        cls: "note-width-width",
-      });
-      widthInput.placeholder = "default | full | 900px | 70%";
-      widthInput.value = rule.width;
-      widthInput.addEventListener("input", () => {
-        const v = widthInput.value.trim();
-        if (parseWidthValue(v) === null) {
-          widthInput.addClass("is-invalid");
-          return;
-        }
-        widthInput.removeClass("is-invalid");
-        this.updateRule(idx, { width: v === "" ? "default" : v });
+      setting.addText((t) => {
+        t.setPlaceholder("文件夹路径")
+          .setValue(rule.path)
+          .onChange((v) => {
+            this.updateRule(idx, { path: v.trim() });
+          });
+        const inputEl = (t as unknown as { inputEl: HTMLInputElement }).inputEl;
+        inputEl.addClass("note-width-path");
       });
 
-      const del = row.createEl("button", { text: "删除" });
-      del.addEventListener("click", async () => {
-        this.plugin.settings.folderRules.splice(idx, 1);
-        await this.plugin.saveSettings();
-        this.renderRules(container);
+      setting.addText((t) => {
+        const inputEl = (t as unknown as { inputEl: HTMLInputElement }).inputEl;
+        t.setPlaceholder("default | full | 900px | 70%")
+          .setValue(rule.width)
+          .onChange((v) => {
+            const trimmed = v.trim();
+            if (parseWidthValue(trimmed) === null) {
+              inputEl.addClass("is-invalid");
+              return;
+            }
+            inputEl.removeClass("is-invalid");
+            this.updateRule(idx, {
+              width: trimmed === "" ? "default" : trimmed,
+            });
+          });
+        inputEl.addClass("note-width-width");
       });
+
+      setting.addExtraButton((b) =>
+        b
+          .setIcon("trash")
+          .setTooltip("删除该规则")
+          .onClick(async () => {
+            this.plugin.settings.folderRules.splice(idx, 1);
+            await this.plugin.saveSettings();
+            this.renderRules(container);
+          }),
+      );
     });
   }
 
